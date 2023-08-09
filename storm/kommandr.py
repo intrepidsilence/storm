@@ -14,6 +14,8 @@ try:
 except ImportError:
     from itertools import zip_longest as izip_longest
 import collections
+collections.Callable = collections.abc.Callable
+collections.Sequence = collections.abc.Sequence
 
 import six
 
