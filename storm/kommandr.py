@@ -7,6 +7,7 @@ command-line interfaces using :py:module:``argparse`` in backyard.
 
 import sys
 import inspect
+inspect.getargspec = inspect.getfullargspec
 import argparse
 
 try:
