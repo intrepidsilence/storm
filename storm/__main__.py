@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import builtins
 import sys
 
 from storm import Storm
