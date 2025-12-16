@@ -9,6 +9,20 @@ Storm is a command-line tool for managing SSH connections via `~/.ssh/config`. I
 **Version:** 1.0.0
 **Python:** 3.11+
 
+## Installation from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/intrepidsilence/storm.git
+cd storm
+
+# Install directly from source
+pip install .
+
+# Or install in development/editable mode (changes to source are reflected immediately)
+pip install -e .
+```
+
 ## Build & Development Commands
 
 ```bash
