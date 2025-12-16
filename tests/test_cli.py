@@ -100,7 +100,7 @@ class TestStormCli:
         assert b"success" in out
         assert rc == 0
 
-        with open(self.config_file) as f:
+        with open(self.config_file, encoding="utf-8") as f:
             content = f.read().encode('ascii')
             assert b'identityfile "/tmp/idfilecheck.rsa"' in content
             assert b"stricthostkeychecking yes" in content
@@ -116,7 +116,7 @@ class TestStormCli:
         assert b"success" in out
         assert rc == 0
 
-        with open(self.config_file) as f:
+        with open(self.config_file, encoding="utf-8") as f:
             content = f.read().encode('ascii')
             assert b'identityfile "/tmp/idfileonlycheck.rsa"' in content
 
@@ -128,7 +128,7 @@ class TestStormCli:
         assert b"success" in out
         assert rc == 0
 
-        with open(self.config_file) as f:
+        with open(self.config_file, encoding="utf-8") as f:
             content = f.read().encode('ascii')
             assert b"basic_edit_check" in content
             assert b"10.20.30.40" in content
@@ -155,7 +155,7 @@ class TestStormCli:
         assert b"success" in out
         assert rc == 0
 
-        with open(self.config_file) as f:
+        with open(self.config_file, encoding="utf-8") as f:
             content = f.read().encode('ascii')
             assert b"user daghan" in content
             assert b"port 42000" in content
@@ -182,7 +182,7 @@ class TestStormCli:
         out, err, rc = self.run_cmd(f'edit worker alphauser@alphaworker.com {self.config_arg}')
         assert rc == 0
 
-        with open(self.config_file) as f:
+        with open(self.config_file, encoding="utf-8") as f:
             content = f.read().encode('ascii')
             assert b"worker1.com" not in content
             assert b"worker2.com" not in content

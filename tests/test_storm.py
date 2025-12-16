@@ -1,7 +1,6 @@
 """Tests for the Storm class."""
 
 import getpass
-import os
 import pytest
 
 from storm import Storm
@@ -19,7 +18,7 @@ class TestStorm:
         storm_instance.ssh_config.write_to_ssh_config()
 
         config_path = storm_instance.ssh_config.ssh_config_file
-        with open(config_path) as fd:
+        with open(config_path, encoding="utf-8") as fd:
             content = fd.read()
 
         assert "hostname 1.1.1.1" in content

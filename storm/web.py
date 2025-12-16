@@ -93,7 +93,7 @@ def delete():
         return response()
     except ValueError as exc:
         return jsonify(message=str(exc)), 404
-    except (TypeError, ValueError):
+    except TypeError:
         return response(status=400)
 
 

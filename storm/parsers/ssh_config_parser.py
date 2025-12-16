@@ -100,7 +100,7 @@ class ConfigParser:
     def load(self):
         config = StormConfig()
 
-        with open(self.ssh_config_file) as fd:
+        with open(self.ssh_config_file, encoding="utf-8") as fd:
             config.parse(fd)
 
         for entry in config.__dict__.get("_config"):
@@ -134,6 +134,7 @@ class ConfigParser:
         self.config_data.append({
             'host': host,
             'options': options,
+            'type': 'entry',
             'order': self.get_last_index(),
         })
 

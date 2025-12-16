@@ -19,9 +19,8 @@ class AliasedSubParsersAction(argparse._SubParsersAction):
         def __init__(self, name, aliases, help):
             dest = name
             if aliases:
-                dest += ' (%s)' % '-'.join(aliases)
-            sup = super(AliasedSubParsersAction._AliasedPseudoAction, self)
-            sup.__init__(option_strings=[], dest=dest, help=help)
+                dest += f' ({"-".join(aliases)})'
+            super().__init__(option_strings=[], dest=dest, help=help)
 
     def add_parser(self, name, **kwargs):
         if 'aliases' in kwargs:
@@ -30,7 +29,7 @@ class AliasedSubParsersAction(argparse._SubParsersAction):
         else:
             aliases = []
 
-        parser = super(AliasedSubParsersAction, self).add_parser(name, **kwargs)
+        parser = super().add_parser(name, **kwargs)
 
         # Make the aliases work.
         if aliases:
@@ -159,7 +158,7 @@ class prog:
                     args = [k]
 
             else:
-                args = options or ['--%s' % k]
+                args = options or [f'--{k}']
                 kwargs.update({'default': v, 'dest': k})
 
             subparser.add_argument(*args, **kwargs)
