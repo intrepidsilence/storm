@@ -130,6 +130,14 @@ class TestStorm:
         results = storm_instance.ssh_config.search_host("netsca")
         assert len(results) == 1
 
+    def test_search_newly_added_host(self, storm_instance):
+        """Test that newly added hosts can be searched without write/reload."""
+        storm_instance.add_entry('searchable-server', 'search.example.com', 'admin', 22, None)
+        # Search should find the host immediately without writing to file
+        results = storm_instance.ssh_config.search_host("searchable")
+        assert len(results) == 1
+        assert results[0]['host'] == 'searchable-server'
+
     def test_custom_options(self, storm_instance):
         custom_options = (
             "StrictHostKeyChecking=no",
