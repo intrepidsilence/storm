@@ -192,6 +192,87 @@ class TestUriParser:
             parse('root@emreyilmaz.me:string-port')
 
 
+class TestStormEdgeCases:
+    """Tests for Storm class edge cases and error handling."""
+
+    def test_add_duplicate_host(self, storm_instance):
+        """Test that adding a duplicate host raises ValueError."""
+        storm_instance.add_entry('duplicate-test', 'test.com', 'user', 22, None)
+        with pytest.raises(ValueError, match="already in your sshconfig"):
+            storm_instance.add_entry('duplicate-test', 'test2.com', 'user2', 22, None)
+
+    def test_clone_nonexistent_host(self, storm_instance):
+        """Test that cloning a non-existent host raises ValueError."""
+        with pytest.raises(ValueError, match="doesn't exist"):
+            storm_instance.clone_entry('nonexistent-host', 'new-clone')
+
+    def test_edit_nonexistent_host(self, storm_instance):
+        """Test that editing a non-existent host raises ValueError."""
+        with pytest.raises(ValueError, match="doesn't exist"):
+            storm_instance.edit_entry('nonexistent-host', 'test.com', 'user', 22, None)
+
+    def test_update_nonexistent_host(self, storm_instance):
+        """Test that updating a non-existent host raises ValueError."""
+        with pytest.raises(ValueError, match="doesn't exist"):
+            storm_instance.update_entry('nonexistent-pattern-.*', port='2222')
+
+    def test_list_entries_ordered(self, storm_instance):
+        """Test list_entries with ordering enabled."""
+        storm_instance.add_entry('zebra-host', 'zebra.com', 'user', 22, None)
+        storm_instance.add_entry('alpha-host', 'alpha.com', 'user', 22, None)
+
+        entries = storm_instance.list_entries(order=True)
+        # Find entries with 'host' key (skip comments/empty lines)
+        hosts = [e.get('host') for e in entries if e.get('type') == 'entry']
+        # Verify alphabetical order
+        assert hosts == sorted(hosts)
+
+    def test_list_entries_only_servers(self, storm_instance):
+        """Test list_entries with only_servers filter."""
+        entries = storm_instance.list_entries(only_servers=True)
+        # Should not contain '*' host or non-entry types
+        for entry in entries:
+            assert entry.get('type') == 'entry'
+            assert entry.get('host') != '*'
+
+    def test_search_host_formatted(self, storm_instance):
+        """Test search_host returns formatted results."""
+        storm_instance.add_entry('formatted-test', 'format.example.com', 'testuser', 2222, None)
+        results = storm_instance.search_host('formatted')
+
+        assert len(results) == 1
+        assert 'formatted-test' in results[0]
+        assert 'testuser' in results[0]
+        assert 'format.example.com' in results[0]
+        assert '2222' in results[0]
+
+    def test_delete_identity_file(self, storm_instance):
+        """Test editing an entry to delete its identity file."""
+        from storm import DELETED_SIGN
+        storm_instance.add_entry('id-test', 'id.example.com', 'user', 22, '/tmp/key.pem')
+
+        # Verify identity file was added
+        for item in storm_instance.ssh_config.config_data:
+            if item.get('host') == 'id-test':
+                assert 'identityfile' in item.get('options')
+                break
+
+        # Edit to remove identity file
+        storm_instance.edit_entry('id-test', 'id.example.com', 'user', 22, DELETED_SIGN)
+
+        # Verify identity file was removed
+        for item in storm_instance.ssh_config.config_data:
+            if item.get('host') == 'id-test':
+                assert 'identityfile' not in item.get('options')
+                break
+
+    def test_clone_to_same_name(self, storm_instance):
+        """Test that cloning a host to itself raises ValueError."""
+        storm_instance.add_entry('self-clone', 'self.com', 'user', 22, None)
+        with pytest.raises(ValueError, match="already in your sshconfig"):
+            storm_instance.clone_entry('self-clone', 'self-clone')
+
+
 class TestVersion:
     """Tests for version."""
 
