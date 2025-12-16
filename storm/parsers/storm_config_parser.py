@@ -1,19 +1,13 @@
-# -*- coding: utf-8 -*-
-
-from os.path import expanduser
-from os.path import exists
-
+from pathlib import Path
 import json
 
 
 def get_storm_config():
-    config_file = expanduser("~/.stormssh/config")
+    config_file = Path.home() / ".stormssh" / "config"
 
-    if exists(config_file):
+    if config_file.exists():
         try:
-            config_data = json.loads(open(config_file).read())
-            return config_data
-
-        except Exception as error:
+            return json.loads(config_file.read_text())
+        except (json.JSONDecodeError, OSError):
             pass
     return {}

@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stormssh"
+version = "1.0.0"
+description = "Management commands to ssh config files."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Emre Yilmaz", email = "mail@emreyilmaz.me"}
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = [
+    "paramiko>=3.4.0,<4.0",
+    "Flask>=3.0.0,<4.0",
+    "Werkzeug>=3.0.0,<4.0",
+    "termcolor>=2.4.0,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "coverage>=7.4.0",
+    "tox>=4.11.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/emre/storm"
+Documentation = "https://stormssh.readthedocs.org"
+Repository = "https://github.com/emre/storm"
+
+[project.scripts]
+storm = "storm.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["storm*"]
+
+[tool.setuptools.package-data]
+storm = [
+    "templates/*.html",
+    "static/css/*.css",
+    "static/css/themes/storm/*.css",
+    "static/css/themes/storm/img/*.png",
+    "static/js/*.js",
+    "static/js/core/*.js",
+    "static/favicon.ico",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-v --cov=storm --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["storm"]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+]

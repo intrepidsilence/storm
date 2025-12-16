@@ -1,5 +1,5 @@
 import json
-import os.path
+from pathlib import Path
 
 from flask import (Flask, Response, make_response, jsonify, request,
                    send_from_directory)
@@ -13,10 +13,9 @@ __THEME__ = "modern"
 
 
 def render(template, theme):
-    static_dir = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(static_dir, 'templates', template)
-    with open(path) as fobj:
-        content = fobj.read()
+    static_dir = Path(__file__).parent
+    template_path = static_dir / 'templates' / template
+    content = template_path.read_text()
 
     content = content.replace('__THEME__', request.args.get('theme', theme))
 
@@ -30,6 +29,7 @@ def response(resp=None, status=200, content_type='application/json'):
 @app.route('/')
 def index():
     return render('index.html', __THEME__)
+
 
 @app.route('/list', methods=['GET'])
 def list_keys():
@@ -56,7 +56,7 @@ def add():
         storm_.add_entry(name, host, user, port, id_file)
         return response(status=201)
     except ValueError as exc:
-        return jsonify(message=exc.message)
+        return jsonify(message=str(exc))
     except (KeyError, TypeError):
         return response(status=400)
 
@@ -78,7 +78,7 @@ def edit():
         storm_.edit_entry(name, host, user, port, id_file)
         return response()
     except ValueError as exc:
-        return jsonify(message=exc.message), 404
+        return jsonify(message=str(exc)), 404
     except (KeyError, TypeError):
         return response(status=400)
 
@@ -92,16 +92,18 @@ def delete():
         storm_.delete_entry(name)
         return response()
     except ValueError as exc:
-        return jsonify(message=exc.message), 404
+        return jsonify(message=str(exc)), 404
     except (TypeError, ValueError):
         return response(status=400)
 
 
 @app.route('/favicon.ico')
 def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
-                               'favicon.ico',
-                               mimetype='image/vnd.microsoft.icon')
+    return send_from_directory(
+        str(Path(app.root_path) / 'static'),
+        'favicon.ico',
+        mimetype='image/vnd.microsoft.icon'
+    )
 
 
 def run(port, debug, theme, ssh_config=None):

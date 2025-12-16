@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import getpass
 import re
 
@@ -8,7 +6,7 @@ def parse(uri, user=None, port=22):
     """
     parses ssh connection uri-like sentences.
     ex:
-        - root@google.com -> (root, google.com, 22)
+        - root@emreyilmaz.me:22 -> (root, emreyilmaz.me, 22)
         - noreply@facebook.com:22 -> (noreply, facebook.com, 22)
         - facebook.com:3306 -> ($USER, facebook.com, 3306)
         - twitter.com -> ($USER, twitter.com, 22)
@@ -40,8 +38,4 @@ def parse(uri, user=None, port=22):
     uri = re.sub(".*@", "", uri)
     host = uri
 
-    return (
-        user,
-        host,
-        port,
-    )
+    return (user, host, port)

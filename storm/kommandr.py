@@ -1,24 +1,13 @@
-# -*- coding: utf-8 -*-
-
 """
 Simple module helps you convert your ordinary functions into cool
-command-line interfaces using :py:module:``argparse`` in backyard.
+command-line interfaces using argparse in backyard.
 """
 
 import sys
 import inspect
-inspect.getargspec = inspect.getfullargspec
 import argparse
-
-try:
-    from itertools import izip_longest
-except ImportError:
-    from itertools import zip_longest as izip_longest
-import collections
-collections.Callable = collections.abc.Callable
-collections.Sequence = collections.abc.Sequence
-
-import six
+from itertools import zip_longest
+from collections.abc import Callable
 
 from .parsers.storm_config_parser import get_storm_config
 from . import __version__
@@ -58,11 +47,11 @@ class AliasedSubParsersAction(argparse._SubParsersAction):
         return parser
 
 
-class prog(object):
+class prog:
     """Class to hold an isolated command namespace"""
 
     _COMMAND_FLAG = '_command'
-    _POSITIONAL = type('_positional', (object,), {})
+    _POSITIONAL = type('_positional', (), {})
 
     def __init__(self, **kwargs):
         """Constructor
@@ -71,7 +60,7 @@ class prog(object):
         :param type: str
 
         :param **kwargs: keyword arguments those passed through to
-                         :py:class:``argparse.ArgumentParser`` constructor
+                         argparse.ArgumentParser constructor
         :param type: dict
 
         """
@@ -98,7 +87,7 @@ class prog(object):
 
     def command(self, *args, **kwargs):
         """Convenient decorator simply creates corresponding command"""
-        if len(args) == 1 and isinstance(args[0], collections.Callable):
+        if len(args) == 1 and isinstance(args[0], Callable):
             return self._generate_command(args[0])
         else:
             def _command(func):
@@ -108,7 +97,7 @@ class prog(object):
     def arg(self, arg_name, *args, **kwargs):
         """Decorator function configures any arg by given ``arg_name`` with
         supplied ``args`` and ``kwargs`` passing them transparently to
-        :py:func:``argparse.ArgumentParser.add_argument`` function
+        argparse.ArgumentParser.add_argument function
 
         :param arg_name: arg name to configure
         :param type: str
@@ -131,16 +120,15 @@ class prog(object):
         :param type: str
 
         :param **kwargs: keyword arguments those passed through to
-                         :py:class:``argparse.ArgumentParser.add_parser``
+                         argparse.ArgumentParser.add_parser
         :param type: dict
 
         """
         func_pointer = name or func.__name__
         storm_config = get_storm_config()
-        aliases, additional_kwarg = None, None
+        aliases = None
         if 'aliases' in storm_config:
-            for command, alias_list in \
-                    six.iteritems(storm_config.get("aliases")):
+            for command, alias_list in storm_config.get("aliases").items():
                 if func_pointer == command:
                     aliases = alias_list
                     break
@@ -149,10 +137,10 @@ class prog(object):
         subparser = self.subparsers.add_parser(name or func.__name__,
                                                aliases=aliases,
                                                help=func_help)
-        spec = inspect.getargspec(func)
-        opts = reversed(list(izip_longest(reversed(spec.args or []),
-                                          reversed(spec.defaults or []),
-                                          fillvalue=self._POSITIONAL())))
+        spec = inspect.getfullargspec(func)
+        opts = reversed(list(zip_longest(reversed(spec.args or []),
+                                         reversed(spec.defaults or []),
+                                         fillvalue=self._POSITIONAL())))
         for k, v in opts:
             argopts = getattr(func, 'argopts', {})
             args, kwargs = argopts.get(k, ([], {}))
@@ -174,7 +162,7 @@ class prog(object):
                 args = options or ['--%s' % k]
                 kwargs.update({'default': v, 'dest': k})
 
-            arg = subparser.add_argument(*args, **kwargs)
+            subparser.add_argument(*args, **kwargs)
 
         subparser.set_defaults(**{self._COMMAND_FLAG: func})
         return func
@@ -191,10 +179,7 @@ class prog(object):
         return command(**arg_map)
 
     def __call__(self):
-        """Calls :py:func:``execute`` with :py:class:``sys.argv`` excluding
-        script name which comes first.
-
-        """
+        """Calls execute with sys.argv excluding script name which comes first."""
         self.execute(sys.argv[1:])
 
 

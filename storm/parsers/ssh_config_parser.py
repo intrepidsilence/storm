@@ -1,15 +1,8 @@
-# -*- coding: utf-8 -*-
-
-from os import makedirs
-from os import chmod
-from os.path import dirname
-from os.path import expanduser
-from os.path import exists
+from pathlib import Path
 from operator import itemgetter
 import re
 
 from paramiko.config import SSHConfig
-import six
 
 
 class StormConfig(SSHConfig):
@@ -21,7 +14,9 @@ class StormConfig(SSHConfig):
         @type file_obj: file
         """
         order = 1
-        host = {"host": ['*'], "config": {}, }
+        host = {"host": ['*'], "config": {}}
+        proxy_re = re.compile(r"^(proxycommand)\s*=*\s*(.*)", re.I)
+
         for line in file_obj:
             line = line.rstrip('\n').lstrip()
             if line == '':
@@ -47,7 +42,6 @@ class StormConfig(SSHConfig):
             if '=' in line:
                 # Ensure ProxyCommand gets properly split
                 if line.lower().strip().startswith('proxycommand'):
-                    proxy_re = re.compile(r"^(proxycommand)\s*=*\s*(.*)", re.I)
                     match = proxy_re.match(line)
                     key, value = match.group(1).lower(), match.group(2)
                 else:
@@ -59,7 +53,7 @@ class StormConfig(SSHConfig):
                 while (i < len(line)) and not line[i].isspace():
                     i += 1
                 if i == len(line):
-                    raise Exception('Unparsable line: %r' % line)
+                    raise ValueError(f'Unparsable line: {line!r}')
                 key = line[:i].lower()
                 value = line[i:].lstrip()
             if key == 'host':
@@ -82,7 +76,7 @@ class StormConfig(SSHConfig):
         self._config.append(host)
 
 
-class ConfigParser(object):
+class ConfigParser:
     """
     Config parser for ~/.ssh/config files.
     """
@@ -92,19 +86,16 @@ class ConfigParser(object):
             ssh_config_file = self.get_default_ssh_config_file()
 
         self.defaults = {}
+        self.ssh_config_file = Path(ssh_config_file)
 
-        self.ssh_config_file = ssh_config_file
-
-        if not exists(self.ssh_config_file):
-            if not exists(dirname(self.ssh_config_file)):
-                makedirs(dirname(self.ssh_config_file))
-            open(self.ssh_config_file, 'w+').close()
-            chmod(self.ssh_config_file, 0o600)
+        if not self.ssh_config_file.exists():
+            self.ssh_config_file.parent.mkdir(parents=True, exist_ok=True)
+            self.ssh_config_file.touch(mode=0o600)
 
         self.config_data = []
 
     def get_default_ssh_config_file(self):
-        return expanduser("~/.ssh/config")
+        return str(Path.home() / ".ssh" / "config")
 
     def load(self):
         config = StormConfig()
@@ -133,7 +124,7 @@ class ConfigParser(object):
                 })
 
             # minor bug in paramiko.SSHConfig that duplicates
-            #"Host *" entries.
+            # "Host *" entries.
             if entry.get("config") and len(entry.get("config")) > 0:
                 self.config_data.append(host_item)
 
@@ -171,7 +162,7 @@ class ConfigParser(object):
                 continue
 
             searchable_information = host_entry.get("host")
-            for key, value in six.iteritems(host_entry.get("options")):
+            for key, value in host_entry.get("options").items():
                 if isinstance(value, list):
                     value = " ".join(value)
                 if isinstance(value, int):
@@ -212,37 +203,25 @@ class ConfigParser(object):
             if host_item.get("type") in ['comment', 'empty_line']:
                 file_content += host_item.get("value") + "\n"
                 continue
-            host_item_content = "Host {0}\n".format(host_item.get("host"))
-            for key, value in six.iteritems(host_item.get("options")):
+            host_item_content = f"Host {host_item.get('host')}\n"
+            for key, value in host_item.get("options").items():
                 if isinstance(value, list):
                     sub_content = ""
                     for value_ in value:
-                        sub_content += "    {0} {1}\n".format(
-                            key, value_
-                        )
+                        sub_content += f"    {key} {value_}\n"
                     host_item_content += sub_content
                 else:
-                    host_item_content += "    {0} {1}\n".format(
-                        key, value
-                    )
+                    host_item_content += f"    {key} {value}\n"
             file_content += host_item_content
 
         return file_content
 
     def write_to_ssh_config(self):
-        with open(self.ssh_config_file, 'w+') as f:
-            data = self.dump()
-            if data:
-                f.write(data)
+        data = self.dump()
+        if data:
+            self.ssh_config_file.write_text(data)
         return self
 
     def get_last_index(self):
-        last_index = 0
-        indexes = []
-        for item in self.config_data:
-            if item.get("order"):
-                indexes.append(item.get("order"))
-        if len(indexes) > 0:
-            last_index = max(indexes)
-
-        return last_index
+        indexes = [item.get("order", 0) for item in self.config_data if item.get("order")]
+        return max(indexes) if indexes else 0
