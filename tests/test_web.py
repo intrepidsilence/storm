@@ -306,3 +306,28 @@ class TestWebRun:
         assert calls == {"port": 9005, "debug": False}
         assert web.__THEME__ == "storm"
         assert web.app.get_storm().is_host_in("a")
+
+
+class TestWebPage:
+    def test_security_headers(self, client):
+        response = client.get('/')
+        csp = response.headers['Content-Security-Policy']
+        assert "default-src 'self'" in csp
+        assert "frame-ancestors 'none'" in csp
+        assert response.headers['X-Frame-Options'] == 'DENY'
+        assert response.headers['X-Content-Type-Options'] == 'nosniff'
+
+    def test_page_shows_version_and_has_no_inline_script(self, client):
+        from storm import __version__
+
+        html = client.get('/').data.decode()
+        assert f'v{__version__}' in html
+        assert '__VERSION__' not in html
+        assert '<script>' not in html
+        assert 'angular' not in html.lower()
+
+    def test_script_is_served(self, client):
+        response = client.get('/static/js/main.js')
+        assert response.status_code == 200
+        assert b'textContent' in response.data
+        assert b'innerHTML' not in response.data

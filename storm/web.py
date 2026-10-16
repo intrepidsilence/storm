@@ -5,7 +5,7 @@ from pathlib import Path
 from flask import (Flask, Response, abort, make_response, jsonify, request,
                    send_from_directory)
 
-from storm import Storm, DELETED_SIGN
+from storm import DELETED_SIGN, Storm, __version__
 from storm.defaults import get_default
 from storm.parsers.ssh_uri_parser import parse
 
@@ -26,6 +26,18 @@ def check_host():
         abort(403)
 
 
+@app.after_request
+def security_headers(resp):
+    # The UI only loads its own script and styles, and must not be framed
+    # by another site (clickjacking).
+    resp.headers['Content-Security-Policy'] = (
+        "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+    )
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    resp.headers['X-Frame-Options'] = 'DENY'
+    return resp
+
+
 def render(template, theme):
     static_dir = Path(__file__).parent
     template_path = static_dir / 'templates' / template
@@ -37,6 +49,7 @@ def render(template, theme):
     if requested_theme not in THEMES:
         requested_theme = theme if theme in THEMES else THEMES[0]
     content = content.replace('__THEME__', requested_theme)
+    content = content.replace('__VERSION__', __version__)
 
     return make_response(content)
 
