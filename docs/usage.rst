@@ -162,10 +162,31 @@ you can also use the web ui instead of commandline interface::
     $ storm web
     $ storm web 3333
     $ storm web --debug
-    $ storm web --theme black --config ~/other/ssh_config
+    $ storm web --theme light --config ~/other/ssh_config
+
+themes are ``dark`` (the default), ``light`` and ``auto`` (follows your system setting). the
+page also has a switch that remembers your choice in that browser.
 
 the web ui only listens on 127.0.0.1 and only answers requests addressed to
 ``localhost``, ``127.0.0.1`` or ``[::1]``.
+
+connecting from the web ui
+--------------------------
+
+each host links twice:
+
+- the **name** opens ``ssh://<name>``. Terminal on macOS runs ``ssh <name>`` for it, so every
+  option in your ssh config for that host (identity file, ProxyJump, ...) applies.
+- the **address** opens ``ssh://user@host:port``, for ssh apps that keep their own host list
+  and don't read ``~/.ssh/config``.
+
+links go to whichever app your system has registered for ``ssh://``. if no app is registered,
+nothing opens. names that are wildcards (``*.internal``), and names or addresses ssh could
+mistake for an option (anything starting with ``-``), are shown without a link.
+
+.. versionchanged:: 1.2
+   new design, dark by default, and ssh:// connect links. the old theme names still work:
+   ``black`` maps to ``dark``, ``modern`` and ``storm`` to ``light``.
 
 .. versionchanged:: 1.1
    the web command takes *--config* like every other command. the old *--ssh_config*

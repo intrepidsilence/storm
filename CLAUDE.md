@@ -65,7 +65,7 @@ ruff check storm/
 - `storm_config_parser.py` - Reads storm's own config from `~/.stormssh/config` (JSON format for command aliases)
 
 ### Web UI
-- `storm/web.py` - Flask-based web interface for managing SSH connections. The page (`storm/templates/index.html`, `storm/static/js/main.js`) is plain JavaScript with no framework; it must insert config values with `textContent`, never `innerHTML` (the CSP header in `security_headers` also forbids inline scripts).
+- `storm/web.py` - Flask-based web interface for managing SSH connections. The page (`storm/templates/index.html`, `storm/static/css/storm.css`, `storm/static/js/main.js`, `storm/static/js/ssh-links.js`) is plain JavaScript with no framework. Themes are `dark` (default), `light`, `auto` via `html[data-theme]`; legacy names map through `LEGACY_THEMES` in `web.py`. `ssh-links.js` builds the `ssh://` links and must never link a host or user starting with `-` (ssh option injection); it is tested under Node in `tests/test_ssh_links.py`. main.js must insert config values with `textContent`, never `innerHTML` (the CSP header in `security_headers` also forbids inline scripts).
 
 ## Key Patterns
 

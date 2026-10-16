@@ -234,18 +234,39 @@ class TestWebSecurity:
         response = client.get('/?theme=%22%3E%3Cscript%3Ealert(1)%3C/script%3E')
         assert response.status_code == 200
         assert b'<script>alert(1)' not in response.data
-        assert b'themes/modern/style.css' in response.data
+        assert b'data-theme="dark"' in response.data
 
-    @pytest.mark.parametrize("theme", ["modern", "black", "storm"])
+    @pytest.mark.parametrize("theme", ["dark", "light", "auto"])
     def test_known_themes_are_used(self, client, theme):
         response = client.get(f'/?theme={theme}')
-        assert f'themes/{theme}/style.css'.encode() in response.data
+        assert f'data-theme="{theme}"'.encode() in response.data
+
+    @pytest.mark.parametrize("legacy,theme", [("black", "dark"), ("modern", "light"), ("storm", "light")])
+    def test_legacy_theme_names_map_to_new_themes(self, client, legacy, theme):
+        response = client.get(f'/?theme={legacy}')
+        assert f'data-theme="{theme}"'.encode() in response.data
+
+    def test_default_theme_is_dark(self, client, monkeypatch):
+        from storm import web
+        monkeypatch.setattr(web, "__THEME__", "dark")
+        assert b'data-theme="dark"' in client.get('/').data
+
+    def test_legacy_configured_theme_is_mapped(self, client, monkeypatch):
+        from storm import web
+        monkeypatch.setattr(web, "__THEME__", "modern")
+        assert b'data-theme="light"' in client.get('/').data
+
+    def test_stylesheet_is_served(self, client):
+        response = client.get('/static/css/storm.css')
+        assert response.status_code == 200
+        assert b'data-theme="light"' in response.data
+        response.close()
 
     def test_invalid_configured_theme_falls_back(self, client, monkeypatch):
         import storm.web as web
         monkeypatch.setattr(web, "__THEME__", "nonsense")
         response = client.get('/')
-        assert b'themes/modern/style.css' in response.data
+        assert b'data-theme="dark"' in response.data
 
     @pytest.mark.parametrize("host", ["evil.example.com", "evil.example.com:9002",
                                       "127.0.0.1.evil.com", "localhost.evil.com:80"])
@@ -316,6 +337,7 @@ class TestWebPage:
         assert "frame-ancestors 'none'" in csp
         assert response.headers['X-Frame-Options'] == 'DENY'
         assert response.headers['X-Content-Type-Options'] == 'nosniff'
+        assert response.headers['Cache-Control'] == 'no-cache'
 
     def test_page_shows_version_and_has_no_inline_script(self, client):
         from storm import __version__
@@ -324,6 +346,8 @@ class TestWebPage:
         assert f'v{__version__}' in html
         assert '__VERSION__' not in html
         assert '<script>' not in html
+        assert f'static/js/main.js?v={__version__}' in html
+        assert f'static/css/storm.css?v={__version__}' in html
         assert 'angular' not in html.lower()
 
     def test_script_is_served(self, client):

@@ -17,7 +17,8 @@ GitHub repository (`emre/storm`) no longer exists; its last release was 0.7.0. S
 - command alias support for your CLI preferences.
 - support for custom SSH directives.
 - scriptable as a python library.
-- a local web ui besides the cli.
+- a local web ui besides the cli, with one-click connect: host names open `ssh <name>` in your
+  terminal.
 
 #### installation
 
@@ -52,7 +53,13 @@ documents the original 0.7.0 release.
 
 **web ui**
 
-<a href="https://i.imgur.com/wVtnWxx.png"><img src="https://i.imgur.com/wVtnWxx.png"></a>
+<img src="resources/web-ui.png" alt="storm web ui in its dark theme, listing hosts beside the add-host form">
+
+`storm web` opens a local page (dark by default; `--theme light` or `--theme auto` to follow
+your system). Click a host's **name** to run `ssh <name>` in your terminal, so everything in your
+ssh config for that host applies. Click its **address** to open `ssh://user@host:port` directly,
+for ssh apps that keep their own host list and don't read `~/.ssh/config`. Either link goes to
+whichever app your system has registered for `ssh://` links; if none is registered, nothing opens.
 
 The web ui (`storm web`) only listens on `127.0.0.1` and only answers requests addressed to
 `localhost`, `127.0.0.1` or `[::1]`.
@@ -109,6 +116,10 @@ Compared with the original 0.7.0 release:
   you write, so `storm update 'web-.*' --connection_uri new.example.com` keeps each host's user and
   port.
 - `storm web` takes `--config` like every other command; `--ssh_config` still works.
+- Redesigned web ui: dark by default with light and auto themes, a host list with one-click
+  `ssh://` connect links, inline errors instead of pop-ups, delete confirmation, and a `/`
+  shortcut for the filter. The old `modern`, `black` and `storm` theme names still work and map
+  to light, dark and light.
 - Works with paramiko up to 5.x and termcolor up to 3.x.
 - The web ui returns `400` for invalid input, and removing an identity file from a host that has
   none no longer fails.

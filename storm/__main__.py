@@ -294,12 +294,14 @@ def backup(target_file, config=None):
 
 @command('web')
 @arg('port', nargs='?', default=9002, type=int)
-@arg('theme', nargs='?', default="modern", choices=['modern', 'black', 'storm'])
+@arg('theme', nargs='?', default="dark",
+     choices=['dark', 'light', 'auto', 'modern', 'black', 'storm'])
 @arg('debug', action='store_true', default=False)
 @arg('config', '--config', '--ssh_config')
-def web(port, debug=False, theme="modern", config=None):
+def web(port, debug=False, theme="dark", config=None):
     """Starts the web UI."""
-    # --ssh_config is the pre-1.0 spelling, kept so existing scripts work.
+    # --ssh_config is the pre-1.0 spelling and modern/black/storm the pre-1.2
+    # theme names; both are kept so existing scripts work.
     from storm import web as _web
     _web.run(port, debug, theme, config)
 

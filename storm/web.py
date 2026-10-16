@@ -17,8 +17,10 @@ from storm.defaults import get_default
 from storm.parsers.ssh_uri_parser import parse
 
 app = Flask(__name__)
-__THEME__ = "modern"
-THEMES = ('modern', 'black', 'storm')
+__THEME__ = "dark"
+THEMES = ('dark', 'light', 'auto')
+# Theme names from before 1.2, mapped onto the current design.
+LEGACY_THEMES = {'black': 'dark', 'modern': 'light', 'storm': 'light'}
 
 # The UI edits ~/.ssh/config, so only answer requests addressed to this
 # machine. This stops DNS-rebinding pages from driving the API.
@@ -44,6 +46,14 @@ def security_headers(resp):
     return resp
 
 
+def resolve_theme(requested, configured):
+    for candidate in (requested, configured):
+        candidate = LEGACY_THEMES.get(candidate, candidate)
+        if candidate in THEMES:
+            return candidate
+    return THEMES[0]
+
+
 def render(template, theme):
     static_dir = Path(__file__).parent
     template_path = static_dir / 'templates' / template
@@ -51,10 +61,7 @@ def render(template, theme):
 
     # Only known theme names reach the page; anything else would be
     # reflected into the HTML unescaped.
-    requested_theme = request.args.get('theme', theme)
-    if requested_theme not in THEMES:
-        requested_theme = theme if theme in THEMES else THEMES[0]
-    content = content.replace('__THEME__', requested_theme)
+    content = content.replace('__THEME__', resolve_theme(request.args.get('theme'), theme))
     content = content.replace('__VERSION__', __version__)
 
     return make_response(content)
@@ -66,7 +73,11 @@ def response(resp=None, status=200, content_type='application/json'):
 
 @app.route('/')
 def index():
-    return render('index.html', __THEME__)
+    resp = render('index.html', __THEME__)
+    # Revalidate the page on every load; its asset URLs carry the version, so
+    # an upgraded storm never runs against a cached page or stale scripts.
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
 
 
 @app.route('/list', methods=['GET'])

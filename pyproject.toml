@@ -54,8 +54,6 @@ include = ["storm*"]
 storm = [
     "templates/*.html",
     "static/css/*.css",
-    "static/css/themes/storm/*.css",
-    "static/css/themes/storm/img/*.png",
     "static/js/*.js",
     "static/favicon.ico",
 ]

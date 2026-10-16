@@ -287,7 +287,7 @@ class TestWeb:
 
         calls = {}
         monkeypatch.setattr(web.app, "run", lambda **kwargs: calls.update(kwargs))
-        monkeypatch.setattr(web, "__THEME__", "modern")
+        monkeypatch.setattr(web, "__THEME__", "dark")
 
         cli.main.execute(["web", "9100", "--theme", "black", "--ssh_config", ssh_config_file])
 
@@ -300,11 +300,11 @@ class TestWeb:
 
         calls = {}
         monkeypatch.setattr(web.app, "run", lambda **kwargs: calls.update(kwargs))
-        monkeypatch.setattr(web, "__THEME__", "modern")
+        monkeypatch.setattr(web, "__THEME__", "light")
 
         cli.main.execute(["web", "--debug"])
         assert calls == {"port": 9002, "debug": True}
-        assert web.__THEME__ == "modern"
+        assert web.__THEME__ == "dark"
 
     def test_web_rejects_unknown_theme(self, capsys):
         with pytest.raises(SystemExit):
