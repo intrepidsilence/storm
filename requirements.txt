@@ -1,4 +1,4 @@
-paramiko>=3.4.0,<4.0
+paramiko>=3.4.0,<6.0
 Flask>=3.0.0,<4.0
 Werkzeug>=3.0.0,<4.0
-termcolor>=2.4.0,<3.0
+termcolor>=2.4.0,<4.0
