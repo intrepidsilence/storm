@@ -78,6 +78,10 @@ Compared with the original 0.7.0 release:
 - The web ui no longer reflects the `?theme=` parameter into the page (a script injection hole),
   and it refuses requests addressed to any host other than this machine, which blocks DNS
   rebinding attacks.
+- The web ui no longer uses AngularJS 1.0.8 (unsupported since 2021, with published
+  vulnerabilities). It is plain JavaScript that inserts config values as text, never as HTML,
+  and the page sends a Content-Security-Policy that blocks inline and third-party scripts and
+  framing by other sites.
 - `~/.ssh` is created with `0700` permissions, and `storm backup` copies the config's permission
   bits instead of creating a world-readable file.
 
@@ -95,5 +99,15 @@ Compared with the original 0.7.0 release:
   instead of being silently ignored (`add`, `edit`) or crashing (`update`). An invalid regular
   expression given to `update` is reported as an error.
 - Ports must be between 1 and 65535, and a connection uri must contain a host.
+
+**Features**
+
+- IPv6 addresses in connection uris: `root@[2001:db8::1]:2222`, or `root@2001:db8::1` without
+  a port.
+- `storm update --connection_uri` works (it was documented but ignored). It changes only the parts
+  you write, so `storm update 'web-.*' --connection_uri new.example.com` keeps each host's user and
+  port.
+- `storm web` takes `--config` like every other command; `--ssh_config` still works.
+- Works with paramiko up to 5.x and termcolor up to 3.x.
 - The web ui returns `400` for invalid input, and removing an identity file from a host that has
   none no longer fails.

@@ -41,14 +41,21 @@ updating multiple hosts all at once using regular expressions
 
 ::
 
-    storm update [-h] [--connection_uri CONNECTION_URI] [--id_file ID_FILE] name
+    storm update [-h] [--connection_uri CONNECTION_URI] [--id_file ID_FILE] [--o KEY=VALUE] name
 
 
-Where `-h`, `id_file` and `connection_uri` are optional arguments.
+Where `-h`, `id_file`, `connection_uri` and `o` are optional arguments. `name` is a
+regular expression matched against the start of each host name.
+
+`--connection_uri` only changes the parts you write: ``new.example.com`` changes the
+hostname and keeps each host's user and port, ``root@new.example.com:2222`` changes all three.
 
 example::
 
     $ storm update my_vps-[1-5] --o user=emre
+    "my_vps-[1-5]" updated successfully.
+
+    $ storm update my_vps-[1-5] --connection_uri vps.example.net
     "my_vps-[1-5]" updated successfully.
 
 
@@ -130,6 +137,10 @@ connection uri format
 - user@server:port (root@server.com:22)
 - server:port (server.com:22)
 - server (server.com)
+- IPv6 addresses go in brackets when a port follows: root@[2001:db8::1]:2222.
+  Without a port the brackets are optional: root@2001:db8::1
+
+ports must be between 1 and 65535.
 
 defaults for *user* -> ``$USER``, *port* -> 22 if they are not specified.
 
@@ -146,6 +157,14 @@ you can also use the web ui instead of commandline interface::
     $ storm web
     $ storm web 3333
     $ storm web --debug
+    $ storm web --theme black --config ~/other/ssh_config
+
+the web ui only listens on 127.0.0.1 and only answers requests addressed to
+``localhost``, ``127.0.0.1`` or ``[::1]``.
+
+.. versionchanged:: 1.1
+   the web command takes *--config* like every other command. the old *--ssh_config*
+   spelling still works.
 
 .. versionchanged:: 0.7
    *--port* option was removed. *--debug* option is now defaults to ``False``.

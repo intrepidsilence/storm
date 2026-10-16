@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Storm is a command-line tool for managing SSH connections via `~/.ssh/config`. It provides commands for adding, editing, deleting, listing, and searching SSH host entries. The package is published to PyPI as `stormssh`.
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Python:** 3.11+
 
 ## Installation from Source
@@ -65,7 +65,7 @@ ruff check storm/
 - `storm_config_parser.py` - Reads storm's own config from `~/.stormssh/config` (JSON format for command aliases)
 
 ### Web UI
-- `storm/web.py` - Flask-based web interface for managing SSH connections
+- `storm/web.py` - Flask-based web interface for managing SSH connections. The page (`storm/templates/index.html`, `storm/static/js/main.js`) is plain JavaScript with no framework; it must insert config values with `textContent`, never `innerHTML` (the CSP header in `security_headers` also forbids inline scripts).
 
 ## Key Patterns
 
