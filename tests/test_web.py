@@ -225,3 +225,84 @@ class TestWebAPI:
         response = client.get('/favicon.ico')
         # May return 200 or 404 depending on file existence
         assert response.status_code in [200, 404]
+
+
+class TestWebSecurity:
+    """Hardening of the local web UI."""
+
+    def test_theme_param_cannot_inject_markup(self, client):
+        response = client.get('/?theme=%22%3E%3Cscript%3Ealert(1)%3C/script%3E')
+        assert response.status_code == 200
+        assert b'<script>alert(1)' not in response.data
+        assert b'themes/modern/style.css' in response.data
+
+    @pytest.mark.parametrize("theme", ["modern", "black", "storm"])
+    def test_known_themes_are_used(self, client, theme):
+        response = client.get(f'/?theme={theme}')
+        assert f'themes/{theme}/style.css'.encode() in response.data
+
+    def test_invalid_configured_theme_falls_back(self, client, monkeypatch):
+        import storm.web as web
+        monkeypatch.setattr(web, "__THEME__", "nonsense")
+        response = client.get('/')
+        assert b'themes/modern/style.css' in response.data
+
+    @pytest.mark.parametrize("host", ["evil.example.com", "evil.example.com:9002",
+                                      "127.0.0.1.evil.com", "localhost.evil.com:80"])
+    def test_foreign_host_header_is_refused(self, client, host):
+        assert client.get('/list', headers={'Host': host}).status_code == 403
+        assert client.post('/delete', json={'name': 'existing-server'},
+                           headers={'Host': host}).status_code == 403
+
+    @pytest.mark.parametrize("host", ["localhost", "localhost:9002", "127.0.0.1:9002", "[::1]:9002"])
+    def test_local_host_header_is_allowed(self, client, host):
+        assert client.get('/list', headers={'Host': host}).status_code == 200
+
+    def test_form_post_is_rejected(self, client):
+        # A cross-site HTML form cannot send application/json.
+        response = client.post('/delete', data={'name': 'existing-server'})
+        assert response.status_code == 415
+
+    def test_add_rejects_injection(self, client):
+        response = client.post('/add', json={
+            'name': 'evil\n    ProxyCommand touch /tmp/pwned',
+            'connection_uri': 'example.com',
+        })
+        assert response.status_code == 400
+        assert b'line breaks' in response.data
+
+    def test_add_bad_port_is_400(self, client):
+        response = client.post('/add', json={'name': 'n', 'connection_uri': 'h:notaport'})
+        assert response.status_code == 400
+
+    def test_add_uses_host_star_defaults(self, client):
+        client.post('/add', json={'name': 'n', 'connection_uri': 'h.example.com'})
+        entry = next(e for e in json.loads(client.get('/list').data) if e['host'] == 'n')
+        assert entry['options']['user'] == 'defaultuser'
+
+    def test_edit_invalid_value_is_400(self, client):
+        response = client.put('/edit', json={
+            'name': 'existing-server', 'connection_uri': 'h:99999'})
+        assert response.status_code == 400
+
+    def test_edit_remove_id_file_when_none_set(self, client):
+        response = client.put('/edit', json={
+            'name': 'existing-server', 'connection_uri': 'admin@x.com', 'id_file': ''})
+        assert response.status_code == 200
+
+
+class TestWebRun:
+    def test_run_configures_app(self, monkeypatch, tmp_path):
+        import storm.web as web
+
+        config = tmp_path / "cfg"
+        config.write_text("Host a\n    hostname x\n")
+        calls = {}
+        monkeypatch.setattr(web.app, "run", lambda **kwargs: calls.update(kwargs))
+        monkeypatch.setattr(web, "__THEME__", "modern")
+
+        web.run("9005", 0, "storm", str(config))
+
+        assert calls == {"port": 9005, "debug": False}
+        assert web.__THEME__ == "storm"
+        assert web.app.get_storm().is_host_in("a")

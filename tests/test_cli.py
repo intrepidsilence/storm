@@ -3,6 +3,7 @@
 import os
 import shlex
 import subprocess
+import sys
 import pytest
 
 from storm import __version__
@@ -19,8 +20,9 @@ class TestStormCli:
 
     def run_cmd(self, cmd):
         """Run a storm command and return output."""
-        cmd = f'storm {cmd}'
-        cmd = shlex.split(cmd)
+        # Run the package with the interpreter running the tests, so the
+        # source under test is used rather than whatever `storm` is on PATH.
+        cmd = [sys.executable, '-m', 'storm', *shlex.split(cmd)]
         env = os.environ.copy()
         env["TESTMODE"] = "1"
 
@@ -205,7 +207,7 @@ class TestStormCli:
         assert rc == 0
 
     def test_delete_invalid_hostname(self):
-        out, err, rc = self.run_cmd("delete unknown_server")
+        out, err, rc = self.run_cmd(f"delete unknown_server {self.config_arg}")
 
         assert out == b''
         assert b'error' in err

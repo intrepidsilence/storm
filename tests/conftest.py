@@ -90,3 +90,12 @@ def set_test_mode():
     yield
     if "TESTMODE" in os.environ:
         del os.environ["TESTMODE"]
+
+
+@pytest.fixture(autouse=True)
+def fake_home(tmp_path_factory, monkeypatch):
+    """Point HOME at an empty directory so no test can read or write the
+    real ~/.ssh/config or ~/.stormssh/config. Subprocess tests inherit it."""
+    home = tmp_path_factory.mktemp("home")
+    monkeypatch.setenv("HOME", str(home))
+    return home

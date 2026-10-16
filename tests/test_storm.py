@@ -279,3 +279,108 @@ class TestVersion:
     def test_version_exists(self):
         assert __version__ is not None
         assert isinstance(__version__, str)
+
+
+class TestInputValidation:
+    """Values written to ~/.ssh/config must not be able to add directives."""
+
+    @pytest.mark.parametrize("field", ["name", "host", "user", "port", "id_file"])
+    def test_add_rejects_line_breaks(self, storm_instance, field):
+        values = {"name": "ok", "host": "h", "user": "u", "port": 22, "id_file": ""}
+        values[field] = "x\n    ProxyCommand touch /tmp/pwned"
+        with pytest.raises(ValueError, match="line breaks"):
+            storm_instance.add_entry(
+                values["name"], values["host"], values["user"], values["port"], values["id_file"])
+        content = open(storm_instance.ssh_config.ssh_config_file).read()
+        assert "ProxyCommand" not in content
+
+    @pytest.mark.parametrize("char", ["\r", "\x00", "\x1b", "\x7f"])
+    def test_rejects_other_control_characters(self, storm_instance, char):
+        with pytest.raises(ValueError):
+            storm_instance.add_entry(f"name{char}x", "h", "u", 22, "")
+
+    def test_tab_is_allowed(self, storm_instance):
+        assert storm_instance.add_entry("tabbed", "h", "u", 22, "", ["sendenv=A\tB"])
+
+    @pytest.mark.parametrize("name", ["", "   "])
+    def test_add_rejects_empty_name(self, storm_instance, name):
+        with pytest.raises(ValueError, match="cannot be empty"):
+            storm_instance.add_entry(name, "h", "u", 22, "")
+
+    def test_add_rejects_empty_host(self, storm_instance):
+        with pytest.raises(ValueError, match="cannot be empty"):
+            storm_instance.add_entry("n", "", "u", 22, "")
+
+    @pytest.mark.parametrize("option", ["bad key=v", "a\nb=v", "=v", "1st=v"])
+    def test_rejects_bad_custom_option_names(self, storm_instance, option):
+        with pytest.raises(ValueError, match="invalid option name"):
+            storm_instance.add_entry("n", "h", "u", 22, "", [option])
+
+    def test_rejects_custom_option_without_equals(self, storm_instance):
+        with pytest.raises(ValueError, match="key=value"):
+            storm_instance.add_entry("n", "h", "u", 22, "", ["Port"])
+        assert not storm_instance.is_host_in("n")
+
+    def test_rejects_bad_custom_option_value(self, storm_instance):
+        with pytest.raises(ValueError, match="line breaks"):
+            storm_instance.add_entry("n", "h", "u", 22, "", ["user=a\nProxyCommand=x"])
+
+    def test_edit_validates(self, storm_instance):
+        with pytest.raises(ValueError, match="line breaks"):
+            storm_instance.edit_entry("netscaler", "h\nx", "u", 22, "")
+
+    def test_clone_validates_new_name(self, storm_instance):
+        with pytest.raises(ValueError, match="line breaks"):
+            storm_instance.clone_entry("netscaler", "copy\nProxyCommand x")
+        with pytest.raises(ValueError, match="cannot be empty"):
+            storm_instance.clone_entry("netscaler", "")
+
+    def test_update_validates_keys_and_values(self, storm_instance):
+        with pytest.raises(ValueError, match="line breaks"):
+            storm_instance.update_entry("netscaler", user="a\nProxyCommand x")
+        with pytest.raises(ValueError, match="invalid option name"):
+            storm_instance.update_entry("netscaler", **{"bad key": "v"})
+
+    def test_update_invalid_regex_is_value_error(self, storm_instance):
+        with pytest.raises(ValueError, match="invalid regular expression"):
+            storm_instance.update_entry("[", user="x")
+
+    def test_none_id_file_is_allowed(self, storm_instance):
+        assert storm_instance.add_entry("noid", "h", "u", 22, None)
+        entry = storm_instance.is_host_in("noid", return_match=True)
+        assert "identityfile" not in entry["options"]
+
+
+class TestCloneIndependence:
+    def test_clone_does_not_share_options(self, storm_instance):
+        storm_instance.clone_entry("netscaler", "copy")
+        storm_instance.ssh_config.update_host("copy", {"hostname": "9.9.9.9"})
+        original = storm_instance.is_host_in("netscaler", return_match=True)
+        assert original["options"]["hostname"] == "1.1.1.1"
+
+
+class TestBackupPermissions:
+    def test_backup_keeps_source_mode(self, storm_instance, tmp_path):
+        import os
+
+        source = storm_instance.ssh_config.ssh_config_file
+        os.chmod(source, 0o600)
+        target = tmp_path / "backup"
+        storm_instance.backup(str(target))
+        assert target.stat().st_mode & 0o777 == 0o600
+
+
+class TestUriParserValidation:
+    @pytest.mark.parametrize("uri", ["host:0", "host:65536", "host:-1"])
+    def test_port_out_of_range(self, uri):
+        with pytest.raises(ValueError, match="between 1 and 65535"):
+            parse(uri)
+
+    @pytest.mark.parametrize("uri", ["user@", "user@:22", "", "   "])
+    def test_empty_host(self, uri):
+        with pytest.raises(ValueError, match="host cannot be empty"):
+            parse(uri)
+
+    def test_port_bounds_accepted(self):
+        assert parse("h:1")[2] == 1
+        assert parse("h:65535")[2] == 65535

@@ -73,7 +73,9 @@ ruff check storm/
 
 **Config Data Structure**: SSH entries are stored as dicts with `host`, `options`, `type`, and `order` keys. The `order` field preserves entry sequence in the config file.
 
-**Testing**: Tests use pytest with fixtures defined in `tests/conftest.py`. CLI tests run the `storm` command as a subprocess with `TESTMODE=1` env var to strip ANSI color codes.
+**Testing**: Tests use pytest with fixtures defined in `tests/conftest.py`. An autouse `fake_home` fixture points `HOME` at a temp dir so no test touches the real `~/.ssh/config` or `~/.stormssh/config`. `tests/test_cli.py` runs `python -m storm` as a subprocess (end-to-end, invisible to coverage); `tests/test_commands.py` dispatches the same commands in-process via `storm.__main__.main.execute([...])` so coverage sees them. `TESTMODE=1` strips ANSI color codes. Line coverage is 100%; keep it there.
+
+**Security invariants**: every value written to the ssh config goes through `validate_value` / `validate_option_name` in `storm/__init__.py` (no control characters, so no directive injection). The web UI (`storm/web.py`) whitelists `?theme=` against `THEMES` and rejects requests whose `Host` is not in `ALLOWED_HOSTS`. `ConfigParser.write_to_ssh_config` writes atomically through symlinks and preserves file mode.
 
 ## Dependencies
 

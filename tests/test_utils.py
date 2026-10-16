@@ -277,3 +277,166 @@ Host other
 
         assert "identityfile /key1.pem" in dumped
         assert "identityfile /key2.pem" in dumped
+
+
+class TestSSHConfigParserRegressions:
+    """Round-trip and write-safety regressions for ConfigParser."""
+
+    def _parser(self, tmp_path, content):
+        from storm.parsers.ssh_config_parser import ConfigParser
+
+        config_file = tmp_path / "ssh_config"
+        config_file.write_text(content)
+        parser = ConfigParser(str(config_file))
+        parser.load()
+        return parser, config_file
+
+    def test_value_containing_equals_is_preserved(self, tmp_path):
+        parser, config_file = self._parser(
+            tmp_path, "Host a\n    SetEnv FOO=bar\n    RemoteCommand echo x=1\n")
+        options = parser.config_data[0]["options"]
+        assert options["setenv"] == "FOO=bar"
+        assert options["remotecommand"] == "echo x=1"
+
+        parser.write_to_ssh_config()
+        assert "setenv FOO=bar" in config_file.read_text()
+
+    def test_equals_separated_directives(self, tmp_path):
+        parser, _ = self._parser(
+            tmp_path,
+            "Host a\n    HostName=example.com\n    Port = 2222\n"
+            "    ProxyCommand=ssh -W %h:%p -o A=b gw\n")
+        options = parser.config_data[0]["options"]
+        assert options["hostname"] == "example.com"
+        assert options["port"] == "2222"
+        assert options["proxycommand"] == "ssh -W %h:%p -o A=b gw"
+
+    def test_repeated_multi_value_directives_are_kept(self, tmp_path):
+        parser, config_file = self._parser(
+            tmp_path,
+            "Host a\n    SendEnv A\n    SendEnv B\n"
+            "    CertificateFile c1\n    CertificateFile c2\n"
+            "    DynamicForward 1080\n    DynamicForward 1081\n")
+        options = parser.config_data[0]["options"]
+        assert options["sendenv"] == ["A", "B"]
+        assert options["certificatefile"] == ["c1", "c2"]
+        assert options["dynamicforward"] == ["1080", "1081"]
+
+        parser.write_to_ssh_config()
+        written = config_file.read_text()
+        assert "sendenv A\n    sendenv B" in written
+        assert "certificatefile c2" in written
+
+    def test_first_value_wins_for_single_value_directives(self, tmp_path):
+        parser, _ = self._parser(tmp_path, "Host a\n    User first\n    User second\n")
+        assert parser.config_data[0]["options"]["user"] == "first"
+
+    def test_directive_without_value_is_rejected(self, tmp_path):
+        from storm.parsers.ssh_config_parser import ConfigParser
+
+        config_file = tmp_path / "ssh_config"
+        config_file.write_text("Host a\n    Compression\n")
+        with pytest.raises(ValueError, match="Unparsable line"):
+            ConfigParser(str(config_file)).load()
+
+    def test_search_includes_integer_values(self, tmp_path):
+        parser, _ = self._parser(tmp_path, "Host a\n    hostname h\n")
+        parser.config_data[0]["options"]["port"] = 4242
+        assert parser.search_host("4242") == [parser.config_data[0]]
+
+    def test_search_includes_list_values(self, tmp_path):
+        parser, _ = self._parser(tmp_path, "Host a\n    IdentityFile ~/.ssh/special\n")
+        assert len(parser.search_host("special")) == 1
+
+    def test_delete_removes_every_matching_entry(self, tmp_path):
+        parser, config_file = self._parser(
+            tmp_path, "Host a\n    hostname x\nHost a\n    hostname y\nHost b\n    hostname z\n")
+        parser.delete_host("a")
+        parser.write_to_ssh_config()
+        assert config_file.read_text() == "Host b\n    hostname z\n"
+
+    def test_deleting_last_entry_empties_the_file(self, tmp_path):
+        parser, config_file = self._parser(tmp_path, "Host a\n    hostname x\n")
+        parser.delete_host("a")
+        parser.write_to_ssh_config()
+        assert config_file.read_text() == ""
+
+    def test_delete_all_hosts_empties_the_file(self, tmp_path):
+        parser, config_file = self._parser(tmp_path, "Host a\n    hostname x\n")
+        parser.delete_all_hosts()
+        assert config_file.read_text() == ""
+
+    def test_update_deleting_absent_field_is_harmless(self, tmp_path):
+        parser, _ = self._parser(tmp_path, "Host a\n    hostname x\n")
+        parser.update_host("a", {"deleted_fields": ["identityfile"], "user": "u"})
+        assert parser.config_data[0]["options"] == {"hostname": "x", "user": "u"}
+
+    def test_update_deletes_field_on_every_regex_match(self, tmp_path):
+        parser, _ = self._parser(
+            tmp_path,
+            "Host web1\n    IdentityFile k1\nHost web2\n    IdentityFile k2\n")
+        options = {"deleted_fields": ["identityfile"]}
+        parser.update_host("web", options, use_regex=True)
+        assert all("identityfile" not in e["options"] for e in parser.config_data)
+        # the caller's dict is not consumed
+        assert options == {"deleted_fields": ["identityfile"]}
+
+    def test_write_preserves_file_mode(self, tmp_path):
+        parser, config_file = self._parser(tmp_path, "Host a\n    hostname x\n")
+        config_file.chmod(0o600)
+        parser.write_to_ssh_config()
+        assert config_file.stat().st_mode & 0o777 == 0o600
+
+    def test_write_goes_through_symlink(self, tmp_path):
+        from storm.parsers.ssh_config_parser import ConfigParser
+
+        real = tmp_path / "dotfiles" / "ssh_config"
+        real.parent.mkdir()
+        real.write_text("Host a\n    hostname x\n")
+        link = tmp_path / "config"
+        link.symlink_to(real)
+
+        parser = ConfigParser(str(link))
+        parser.load()
+        parser.add_host("b", {"hostname": "y"})
+        parser.write_to_ssh_config()
+
+        assert link.is_symlink()
+        assert "Host b" in real.read_text()
+
+    def test_write_recreates_missing_file_privately(self, tmp_path):
+        parser, config_file = self._parser(tmp_path, "Host a\n    hostname x\n")
+        config_file.unlink()
+        parser.write_to_ssh_config()
+        assert config_file.stat().st_mode & 0o777 == 0o600
+        assert "Host a" in config_file.read_text()
+
+    def test_failed_write_leaves_original_and_no_temp_file(self, tmp_path, monkeypatch):
+        import os
+
+        parser, config_file = self._parser(tmp_path, "Host a\n    hostname x\n")
+        parser.add_host("b", {"hostname": "y"})
+
+        def fail(src, dst):
+            raise OSError("simulated")
+        monkeypatch.setattr(os, "replace", fail)
+
+        with pytest.raises(OSError, match="simulated"):
+            parser.write_to_ssh_config()
+        assert config_file.read_text() == "Host a\n    hostname x\n"
+        assert [p.name for p in tmp_path.iterdir()] == ["ssh_config"]
+
+    def test_missing_ssh_dir_is_created_private(self, tmp_path):
+        from storm.parsers.ssh_config_parser import ConfigParser
+
+        config_file = tmp_path / "newssh" / "config"
+        ConfigParser(str(config_file))
+        assert (tmp_path / "newssh").stat().st_mode & 0o777 == 0o700
+        assert config_file.stat().st_mode & 0o777 == 0o600
+
+    def test_default_config_path_is_in_home(self, fake_home):
+        from storm.parsers.ssh_config_parser import ConfigParser
+
+        parser = ConfigParser()
+        assert parser.ssh_config_file == fake_home / ".ssh" / "config"
+        assert parser.ssh_config_file.exists()
