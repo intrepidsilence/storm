@@ -1,8 +1,8 @@
-from pathlib import Path
-from operator import itemgetter
 import os
 import re
 import tempfile
+from operator import itemgetter
+from pathlib import Path
 
 from paramiko.config import SSHConfig
 
@@ -166,7 +166,7 @@ class ConfigParser:
                 continue
 
             searchable_information = host_entry.get("host")
-            for key, value in host_entry.get("options").items():
+            for value in host_entry.get("options").values():
                 if isinstance(value, list):
                     value = " ".join(value)
                 if isinstance(value, int):

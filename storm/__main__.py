@@ -1,13 +1,10 @@
-#!/usr/bin/env python3
-
 import sys
 
-from storm import Storm
-from storm.parsers.ssh_uri_parser import parse, split_uri
-from storm.utils import get_formatted_message, colored
-from storm.kommandr import command, arg, main
+from storm import Storm, __version__
 from storm.defaults import get_default
-from storm import __version__
+from storm.kommandr import arg, command, main
+from storm.parsers.ssh_uri_parser import parse, split_uri
+from storm.utils import colored, get_formatted_message
 
 
 def get_storm_instance(config_file=None):
@@ -23,11 +20,12 @@ def version():
 
 
 @command('add')
-def add(name, connection_uri, id_file="", o=[], config=None):
+def add(name, connection_uri, id_file="", o=[], config=None):  # noqa: B006
     """
     Adds a new entry to sshconfig.
     """
-    # Note: o=[] is safe here because argparse creates a new list via action='append'
+    # o=[] tells kommandr to make --o repeatable (action='append'); argparse
+    # builds a fresh list per run, so the shared default is never mutated.
     storm_ = get_storm_instance(config)
 
     try:
@@ -107,11 +105,12 @@ def move(name, entry_name, config=None):
 
 
 @command('edit')
-def edit(name, connection_uri, id_file="", o=[], config=None):
+def edit(name, connection_uri, id_file="", o=[], config=None):  # noqa: B006
     """
     Edits the related entry in ssh config.
     """
-    # Note: o=[] is safe here because argparse creates a new list via action='append'
+    # o=[] tells kommandr to make --o repeatable (action='append'); argparse
+    # builds a fresh list per run, so the shared default is never mutated.
     storm_ = get_storm_instance(config)
 
     try:
@@ -132,12 +131,13 @@ def edit(name, connection_uri, id_file="", o=[], config=None):
 
 
 @command('update')
-def update(name, connection_uri="", id_file="", o=[], config=None):
+def update(name, connection_uri="", id_file="", o=[], config=None):  # noqa: B006
     """
     Enhanced version of the edit command featuring multiple
     edits using regular expressions to match entries
     """
-    # Note: o=[] is safe here because argparse creates a new list via action='append'
+    # o=[] tells kommandr to make --o repeatable (action='append'); argparse
+    # builds a fresh list per run, so the shared default is never mutated.
     storm_ = get_storm_instance(config)
     settings = {}
 
@@ -238,7 +238,7 @@ def list_entries(config=None):
 
         result += result_stack
         print(get_formatted_message(result, ""))
-    except Exception as error:
+    except (OSError, ValueError) as error:
         print(get_formatted_message(str(error), 'error'), file=sys.stderr)
         sys.exit(1)
 
@@ -259,7 +259,7 @@ def search(search_text, config=None):
             message = f'Listing results for {search_text}:\n'
             message += "".join(results)
             print(message)
-    except Exception as error:
+    except (OSError, ValueError) as error:
         print(get_formatted_message(str(error), 'error'), file=sys.stderr)
         sys.exit(1)
 
@@ -274,7 +274,7 @@ def delete_all(config=None):
     try:
         storm_.delete_all_entries()
         print(get_formatted_message('all entries deleted.', 'success'))
-    except Exception as error:
+    except (OSError, ValueError) as error:
         print(get_formatted_message(str(error), 'error'), file=sys.stderr)
         sys.exit(1)
 
@@ -287,7 +287,7 @@ def backup(target_file, config=None):
     storm_ = get_storm_instance(config)
     try:
         storm_.backup(target_file)
-    except Exception as error:
+    except (OSError, ValueError) as error:
         print(get_formatted_message(str(error), 'error'), file=sys.stderr)
         sys.exit(1)
 

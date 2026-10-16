@@ -240,7 +240,7 @@ class TestList:
 
     def test_list_error(self, run, monkeypatch):
         def boom(self, *args, **kwargs):
-            raise RuntimeError("broken")
+            raise OSError("broken")
         monkeypatch.setattr(Storm, "list_entries", boom)
         _, err, code = run("list")
         assert code == 1
@@ -261,7 +261,7 @@ class TestSearch:
 
     def test_search_error(self, run, monkeypatch):
         def boom(self, text):
-            raise RuntimeError("search broke")
+            raise ValueError("search broke")
         monkeypatch.setattr(Storm, "search_host", boom)
         _, err, code = run("search", "x")
         assert code == 1

@@ -3,14 +3,14 @@ Simple module helps you convert your ordinary functions into cool
 command-line interfaces using argparse in backyard.
 """
 
-import sys
-import inspect
 import argparse
-from itertools import zip_longest
+import inspect
+import sys
 from collections.abc import Callable
+from itertools import zip_longest
 
-from .parsers.storm_config_parser import get_storm_config
 from . import __version__
+from .parsers.storm_config_parser import get_storm_config
 
 
 class AliasedSubParsersAction(argparse._SubParsersAction):

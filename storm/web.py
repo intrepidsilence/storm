@@ -2,13 +2,19 @@ import json
 import re
 from pathlib import Path
 
-from flask import (Flask, Response, abort, make_response, jsonify, request,
-                   send_from_directory)
+from flask import (
+    Flask,
+    Response,
+    abort,
+    jsonify,
+    make_response,
+    request,
+    send_from_directory,
+)
 
 from storm import DELETED_SIGN, Storm, __version__
 from storm.defaults import get_default
 from storm.parsers.ssh_uri_parser import parse
-
 
 app = Flask(__name__)
 __THEME__ = "modern"

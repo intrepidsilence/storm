@@ -1,11 +1,10 @@
+import re
 from copy import deepcopy
 from operator import itemgetter
-import re
 from shutil import copy
 
-from .parsers.ssh_config_parser import ConfigParser
 from .defaults import get_default
-
+from .parsers.ssh_config_parser import ConfigParser
 
 __version__ = '1.1.0'
 
