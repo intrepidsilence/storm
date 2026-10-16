@@ -355,6 +355,13 @@ class TestAddIPv6:
         options = load(ssh_config_file).is_host_in("v6", return_match=True)["options"]
         assert options == {"hostname": "2001:db8::1", "user": "root", "port": "2222"}
 
+    def test_list_and_search_bracket_ipv6(self, run):
+        run("add", "v6", "root@[2001:db8::1]:2222")
+        out, _, _ = run("list")
+        assert "v6 -> root@[2001:db8::1]:2222" in out
+        out, _, _ = run("search", "db8")
+        assert "v6 -> root@[2001:db8::1]:2222" in out
+
 
 class TestWebConfigOption:
     @pytest.mark.parametrize("flag", ["--config", "--ssh_config"])

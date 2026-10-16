@@ -103,7 +103,7 @@ Compared with the original 0.7.0 release:
 **Features**
 
 - IPv6 addresses in connection uris: `root@[2001:db8::1]:2222`, or `root@2001:db8::1` without
-  a port.
+  a port. `storm list` and `storm search` show IPv6 hosts in the same bracketed form.
 - `storm update --connection_uri` works (it was documented but ignored). It changes only the parts
   you write, so `storm update 'web-.*' --connection_uri new.example.com` keeps each host's user and
   port.

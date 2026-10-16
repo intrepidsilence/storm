@@ -5,6 +5,7 @@ from shutil import copy
 
 from .defaults import get_default
 from .parsers.ssh_config_parser import ConfigParser
+from .parsers.ssh_uri_parser import format_uri
 
 __version__ = '1.1.0'
 
@@ -150,7 +151,7 @@ class Storm:
             user = host_entry.get("options").get("user", get_default("user", self.defaults))
             hostname = host_entry.get("options").get("hostname", "[hostname_not_specified]")
             port = host_entry.get("options").get("port", get_default("port", self.defaults))
-            formatted_results.append(f"    {host} -> {user}@{hostname}:{port}\n")
+            formatted_results.append(f"    {host} -> {format_uri(user, hostname, port)}\n")
 
         return formatted_results
 

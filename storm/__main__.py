@@ -3,7 +3,7 @@ import sys
 from storm import Storm, __version__
 from storm.defaults import get_default
 from storm.kommandr import arg, command, main
-from storm.parsers.ssh_uri_parser import parse, split_uri
+from storm.parsers.ssh_uri_parser import format_uri, parse, split_uri
 from storm.utils import colored, get_formatted_message
 
 
@@ -205,7 +205,7 @@ def list_entries(config=None):
                     user = host.get("options").get("user", get_default("user", storm_.defaults))
                     hostname = host.get("options").get("hostname", "[hostname_not_specified]")
                     port = host.get("options").get("port", get_default("port", storm_.defaults))
-                    result += f"    {host_name} -> {user}@{hostname}:{port}"
+                    result += f"    {host_name} -> {format_uri(user, hostname, port)}"
 
                     extra = False
                     for key, value in host.get("options").items():

@@ -47,6 +47,16 @@ def split_uri(uri):
     return user, host, port
 
 
+def format_uri(user, host, port):
+    """
+    the inverse of parse: builds user@host:port, bracketing IPv6 hosts so
+    the port can be told apart from the address.
+    """
+    if ':' in str(host):
+        host = f"[{host}]"
+    return f"{user}@{host}:{port}"
+
+
 def parse(uri, user=None, port=22):
     """
     parses ssh connection uri-like sentences.
