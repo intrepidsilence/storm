@@ -1,8 +1,24 @@
 from pathlib import Path
 from operator import itemgetter
+import os
 import re
+import tempfile
 
 from paramiko.config import SSHConfig
+
+# Directives OpenSSH accumulates when they appear more than once in a block;
+# every other directive keeps only its first value.
+MULTI_VALUE_KEYS = (
+    'certificatefile',
+    'dynamicforward',
+    'identityfile',
+    'localforward',
+    'remoteforward',
+    'sendenv',
+)
+
+# "Key Value", "Key=Value" and "Key = Value" are all valid directive forms.
+DIRECTIVE_RE = re.compile(r"^([^\s=]+)(?:\s*=\s*|\s+)(.*)$")
 
 
 class StormConfig(SSHConfig):
@@ -15,7 +31,6 @@ class StormConfig(SSHConfig):
         """
         order = 1
         host = {"host": ['*'], "config": {}}
-        proxy_re = re.compile(r"^(proxycommand)\s*=*\s*(.*)", re.I)
 
         for line in file_obj:
             line = line.rstrip('\n').lstrip()
@@ -39,23 +54,10 @@ class StormConfig(SSHConfig):
                 order += 1
                 continue
 
-            if '=' in line:
-                # Ensure ProxyCommand gets properly split
-                if line.lower().strip().startswith('proxycommand'):
-                    match = proxy_re.match(line)
-                    key, value = match.group(1).lower(), match.group(2)
-                else:
-                    key, value = line.split('=', 1)
-                    key = key.strip().lower()
-            else:
-                # find first whitespace, and split there
-                i = 0
-                while (i < len(line)) and not line[i].isspace():
-                    i += 1
-                if i == len(line):
-                    raise ValueError(f'Unparsable line: {line!r}')
-                key = line[:i].lower()
-                value = line[i:].lstrip()
+            match = DIRECTIVE_RE.match(line)
+            if not match:
+                raise ValueError(f'Unparsable line: {line!r}')
+            key, value = match.group(1).lower(), match.group(2)
             if key == 'host':
                 self._config.append(host)
                 value = value.split()
@@ -66,7 +68,7 @@ class StormConfig(SSHConfig):
                     'order': order
                 }
                 order += 1
-            elif key in ['identityfile', 'localforward', 'remoteforward']:
+            elif key in MULTI_VALUE_KEYS:
                 if key in host['config']:
                     host['config'][key].append(value)
                 else:
@@ -89,7 +91,7 @@ class ConfigParser:
         self.ssh_config_file = Path(ssh_config_file)
 
         if not self.ssh_config_file.exists():
-            self.ssh_config_file.parent.mkdir(parents=True, exist_ok=True)
+            self.ssh_config_file.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             self.ssh_config_file.touch(mode=0o600)
 
         self.config_data = []
@@ -141,14 +143,15 @@ class ConfigParser:
         return self
 
     def update_host(self, host, options, use_regex=False):
+        options = dict(options)
+        deleted_fields = options.pop("deleted_fields", [])
+
         for index, host_entry in enumerate(self.config_data):
             if host_entry.get("host") == host or \
                     (use_regex and re.match(host, host_entry.get("host"))):
 
-                if 'deleted_fields' in options:
-                    deleted_fields = options.pop("deleted_fields")
-                    for deleted_field in deleted_fields:
-                        del self.config_data[index]["options"][deleted_field]
+                for deleted_field in deleted_fields:
+                    self.config_data[index]["options"].pop(deleted_field, None)
 
                 self.config_data[index]["options"].update(options)
 
@@ -177,14 +180,14 @@ class ConfigParser:
         return results
 
     def delete_host(self, host):
-        found = 0
-        for index, host_entry in enumerate(self.config_data):
-            if host_entry.get("host") == host:
-                del self.config_data[index]
-                found += 1
+        remaining = [
+            host_entry for host_entry in self.config_data
+            if host_entry.get("host") != host
+        ]
 
-        if found == 0:
+        if len(remaining) == len(self.config_data):
             raise ValueError('No host found')
+        self.config_data = remaining
         return self
 
     def delete_all_hosts(self):
@@ -194,9 +197,6 @@ class ConfigParser:
         return self
 
     def dump(self):
-        if len(self.config_data) < 1:
-            return
-
         file_content = ""
         self.config_data = sorted(self.config_data, key=itemgetter("order"))
 
@@ -219,8 +219,24 @@ class ConfigParser:
 
     def write_to_ssh_config(self):
         data = self.dump()
-        if data:
-            self.ssh_config_file.write_text(data)
+
+        # Write the real file behind a symlink (dotfile managers), and swap it
+        # in atomically so a crash never leaves a truncated ssh config.
+        target = self.ssh_config_file.resolve()
+        try:
+            mode = target.stat().st_mode & 0o777
+        except FileNotFoundError:
+            mode = 0o600
+
+        fd, tmp_path = tempfile.mkstemp(dir=target.parent, prefix=f".{target.name}.")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as tmp_file:
+                tmp_file.write(data)
+            os.chmod(tmp_path, mode)
+            os.replace(tmp_path, target)
+        except BaseException:
+            os.unlink(tmp_path)
+            raise
         return self
 
     def get_last_index(self):

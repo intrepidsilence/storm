@@ -1,15 +1,29 @@
 import json
+import re
 from pathlib import Path
 
-from flask import (Flask, Response, make_response, jsonify, request,
+from flask import (Flask, Response, abort, make_response, jsonify, request,
                    send_from_directory)
 
 from storm import Storm, DELETED_SIGN
+from storm.defaults import get_default
 from storm.parsers.ssh_uri_parser import parse
 
 
 app = Flask(__name__)
 __THEME__ = "modern"
+THEMES = ('modern', 'black', 'storm')
+
+# The UI edits ~/.ssh/config, so only answer requests addressed to this
+# machine. This stops DNS-rebinding pages from driving the API.
+ALLOWED_HOSTS = ('localhost', '127.0.0.1', '[::1]')
+
+
+@app.before_request
+def check_host():
+    hostname = re.sub(r':\d+$', '', request.host)
+    if hostname not in ALLOWED_HOSTS:
+        abort(403)
 
 
 def render(template, theme):
@@ -17,7 +31,12 @@ def render(template, theme):
     template_path = static_dir / 'templates' / template
     content = template_path.read_text()
 
-    content = content.replace('__THEME__', request.args.get('theme', theme))
+    # Only known theme names reach the page; anything else would be
+    # reflected into the HTML unescaped.
+    requested_theme = request.args.get('theme', theme)
+    if requested_theme not in THEMES:
+        requested_theme = theme if theme in THEMES else THEMES[0]
+    content = content.replace('__THEME__', requested_theme)
 
     return make_response(content)
 
@@ -52,11 +71,15 @@ def add():
             msg = 'invalid value: "@" cannot be used in name.'
             return jsonify(message=msg), 400
 
-        user, host, port = parse(connection_uri)
+        user, host, port = parse(
+            connection_uri,
+            user=get_default("user", storm_.defaults),
+            port=get_default("port", storm_.defaults)
+        )
         storm_.add_entry(name, host, user, port, id_file)
         return response(status=201)
     except ValueError as exc:
-        return jsonify(message=str(exc))
+        return jsonify(message=str(exc)), 400
     except (KeyError, TypeError):
         return response(status=400)
 
@@ -74,11 +97,18 @@ def edit():
             if id_file == '':
                 id_file = DELETED_SIGN
 
-        user, host, port = parse(connection_uri)
+        if not storm_.is_host_in(name):
+            return jsonify(message=f"{name} doesn't exist in your sshconfig."), 404
+
+        user, host, port = parse(
+            connection_uri,
+            user=get_default("user", storm_.defaults),
+            port=get_default("port", storm_.defaults)
+        )
         storm_.edit_entry(name, host, user, port, id_file)
         return response()
     except ValueError as exc:
-        return jsonify(message=str(exc)), 404
+        return jsonify(message=str(exc)), 400
     except (KeyError, TypeError):
         return response(status=400)
 

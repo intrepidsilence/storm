@@ -141,14 +141,16 @@ def update(name, connection_uri="", id_file="", o=[], config=None):
     storm_ = get_storm_instance(config)
     settings = {}
 
-    if id_file != "":
-        settings['identityfile'] = id_file
-
-    for option in o:
-        k, v = option.split("=")
-        settings[k] = v
-
     try:
+        if id_file != "":
+            settings['identityfile'] = id_file
+
+        for option in o:
+            if '=' not in option:
+                raise ValueError(f'invalid option: "{option}" must be in key=value form.')
+            k, v = option.split("=", 1)
+            settings[k.lower()] = v
+
         storm_.update_entry(name, **settings)
         print(get_formatted_message(f'"{name}" updated successfully.', 'success'))
     except ValueError as error:

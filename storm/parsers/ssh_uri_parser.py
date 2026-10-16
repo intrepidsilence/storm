@@ -31,11 +31,17 @@ def parse(uri, user=None, port=22):
     try:
         port = int(port)
     except ValueError:
-        raise ValueError("port must be numeric.")
+        raise ValueError("port must be numeric.") from None
+
+    if not 1 <= port <= 65535:
+        raise ValueError("port must be between 1 and 65535.")
 
     # get host
     uri = re.sub(":.*", "", uri)
     uri = re.sub(".*@", "", uri)
     host = uri
+
+    if not host:
+        raise ValueError("host cannot be empty.")
 
     return (user, host, port)

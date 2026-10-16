@@ -169,7 +169,7 @@ class TestSSHConfigParser:
             parser.delete_host("nonexistent")
 
     def test_dump_empty_config(self, tmp_path):
-        """Test dump returns None for empty config."""
+        """Test dump returns an empty string for empty config, so writing it clears the file."""
         from storm.parsers.ssh_config_parser import ConfigParser
 
         config_file = tmp_path / "ssh_config"
@@ -180,7 +180,7 @@ class TestSSHConfigParser:
         parser.config_data = []
 
         result = parser.dump()
-        assert result is None
+        assert result == ""
 
     def test_config_with_comments_and_empty_lines(self, tmp_path):
         """Test parsing config with comments and empty lines."""
