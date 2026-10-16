@@ -140,6 +140,11 @@ connection uri format
 - IPv6 addresses go in brackets when a port follows: root@[2001:db8::1]:2222.
   Without a port the brackets are optional: root@2001:db8::1
 
+quote bracketed uris: zsh (the macOS default shell) reads ``[...]`` as a filename
+pattern and fails with "no matches found"::
+
+    $ storm add v6box 'root@[2001:db8::1]:2222'
+
 ports must be between 1 and 65535.
 
 defaults for *user* -> ``$USER``, *port* -> 22 if they are not specified.
