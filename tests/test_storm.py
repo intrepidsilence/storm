@@ -384,3 +384,40 @@ class TestUriParserValidation:
     def test_port_bounds_accepted(self):
         assert parse("h:1")[2] == 1
         assert parse("h:65535")[2] == 65535
+
+
+class TestUriParserIPv6:
+    @pytest.mark.parametrize("uri,expected", [
+        ("root@[2001:db8::1]:2222", ("root", "2001:db8::1", 2222)),
+        ("[::1]:22", (getpass.getuser(), "::1", 22)),
+        ("root@[::1]", ("root", "::1", 22)),
+        ("root@2001:db8::1", ("root", "2001:db8::1", 22)),
+        ("fe80::1%en0", (getpass.getuser(), "fe80::1%en0", 22)),
+    ])
+    def test_ipv6(self, uri, expected):
+        assert parse(uri) == expected
+
+    @pytest.mark.parametrize("uri", ["[::1", "[::1]x", "[::1]22", "[]:22"])
+    def test_malformed_brackets(self, uri):
+        with pytest.raises(ValueError):
+            parse(uri)
+
+    def test_bracketed_port_validated(self):
+        with pytest.raises(ValueError, match="numeric"):
+            parse("[::1]:ssh")
+        with pytest.raises(ValueError, match="between"):
+            parse("[::1]:0")
+
+
+class TestSplitUri:
+    def test_only_written_parts_are_returned(self):
+        from storm.parsers.ssh_uri_parser import split_uri
+
+        assert split_uri("example.com") == (None, "example.com", None)
+        assert split_uri("bob@example.com") == ("bob", "example.com", None)
+        assert split_uri("example.com:2200") == (None, "example.com", 2200)
+        assert split_uri(" bob@[::1]:22 ") == ("bob", "::1", 22)
+
+    def test_default_port_must_be_numeric(self):
+        with pytest.raises(ValueError, match="numeric"):
+            parse("example.com", port="abc")

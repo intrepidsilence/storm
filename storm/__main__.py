@@ -3,7 +3,7 @@
 import sys
 
 from storm import Storm
-from storm.parsers.ssh_uri_parser import parse
+from storm.parsers.ssh_uri_parser import parse, split_uri
 from storm.utils import get_formatted_message, colored
 from storm.kommandr import command, arg, main
 from storm.defaults import get_default
@@ -142,6 +142,16 @@ def update(name, connection_uri="", id_file="", o=[], config=None):
     settings = {}
 
     try:
+        if connection_uri != "":
+            # Only the parts written in the uri change; "web1.example.com"
+            # updates the hostname and keeps each host's user and port.
+            user, host, port = split_uri(connection_uri)
+            settings['hostname'] = host
+            if user is not None:
+                settings['user'] = user
+            if port is not None:
+                settings['port'] = port
+
         if id_file != "":
             settings['identityfile'] = id_file
 
@@ -286,10 +296,12 @@ def backup(target_file, config=None):
 @arg('port', nargs='?', default=9002, type=int)
 @arg('theme', nargs='?', default="modern", choices=['modern', 'black', 'storm'])
 @arg('debug', action='store_true', default=False)
-def web(port, debug=False, theme="modern", ssh_config=None):
+@arg('config', '--config', '--ssh_config')
+def web(port, debug=False, theme="modern", config=None):
     """Starts the web UI."""
+    # --ssh_config is the pre-1.0 spelling, kept so existing scripts work.
     from storm import web as _web
-    _web.run(port, debug, theme, ssh_config)
+    _web.run(port, debug, theme, config)
 
 
 if __name__ == '__main__':

@@ -29,7 +29,7 @@ __stormssh(){
                 options="$add_edit_options --connection_uri"
             fi
             if [[ $storm_command = web ]]; then
-                options="-h --debug --ssh_config"
+                options="-h --debug --theme --config"
             fi
         fi
     else

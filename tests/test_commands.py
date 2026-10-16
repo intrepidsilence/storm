@@ -316,3 +316,51 @@ class TestGetStormInstance:
     def test_default_config_path(self, fake_home):
         storm_ = cli.get_storm_instance()
         assert storm_.ssh_config.ssh_config_file == fake_home / ".ssh" / "config"
+
+
+class TestUpdateConnectionUri:
+    def test_hostname_only_keeps_user_and_port(self, run, ssh_config_file):
+        _, _, code = run("update", "server1", "--connection_uri", "new.example.com")
+        assert code == 0
+        options = load(ssh_config_file).is_host_in("server1", return_match=True)["options"]
+        assert options["hostname"] == "new.example.com"
+        assert options["user"] == "nixcraft"
+        assert options["port"] == "4242"
+
+    def test_full_uri_sets_all_parts(self, run, ssh_config_file):
+        _, _, code = run("update", "server1", "--connection_uri", "root@[2001:db8::1]:2200")
+        assert code == 0
+        options = load(ssh_config_file).is_host_in("server1", return_match=True)["options"]
+        assert options["hostname"] == "2001:db8::1"
+        assert options["user"] == "root"
+        assert options["port"] == "2200"
+
+    def test_regex_update_applies_to_every_match(self, run, ssh_config_file):
+        _, _, code = run("update", "uk.*", "--connection_uri", "admin@10.9.9.9")
+        assert code == 0
+        options = load(ssh_config_file).is_host_in("uk.gw.lan uk.lan", return_match=True)["options"]
+        assert options["hostname"] == "10.9.9.9"
+        assert options["user"] == "admin"
+
+    def test_invalid_uri(self, run):
+        _, err, code = run("update", "server1", "--connection_uri", "host:99999")
+        assert code == 1
+        assert "between 1 and 65535" in err
+
+
+class TestAddIPv6:
+    def test_add_ipv6(self, run, ssh_config_file):
+        _, _, code = run("add", "v6", "root@[2001:db8::1]:2222")
+        assert code == 0
+        options = load(ssh_config_file).is_host_in("v6", return_match=True)["options"]
+        assert options == {"hostname": "2001:db8::1", "user": "root", "port": "2222"}
+
+
+class TestWebConfigOption:
+    @pytest.mark.parametrize("flag", ["--config", "--ssh_config"])
+    def test_config_and_legacy_spelling(self, monkeypatch, ssh_config_file, flag):
+        from storm import web
+
+        monkeypatch.setattr(web.app, "run", lambda **kwargs: None)
+        cli.main.execute(["web", flag, ssh_config_file])
+        assert str(web.app.get_storm().ssh_config.ssh_config_file) == ssh_config_file
