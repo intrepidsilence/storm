@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Storm is a command-line tool for managing SSH connections via `~/.ssh/config`. It provides commands for adding, editing, deleting, listing, and searching SSH host entries. The package is published to PyPI as `stormssh`.
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Python:** 3.11+
 
 ## Installation from Source

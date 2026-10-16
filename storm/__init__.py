@@ -7,7 +7,7 @@ from .defaults import get_default
 from .parsers.ssh_config_parser import ConfigParser
 from .parsers.ssh_uri_parser import format_uri
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 
 ERRORS = {
     "already_in": "{name} is already in your sshconfig. "

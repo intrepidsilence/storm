@@ -18,7 +18,7 @@
 
 %{?sle15_python_module_pythons}
 Name:           python-stormssh
-Version:        1.1.0
+Version:        1.2.0
 Release:        0
 Summary:        Command line tool to manage your ssh connections
 License:        MIT

@@ -5,7 +5,7 @@
 # provides and replaces it.
 pkgname=python-stormssh-git
 _pkgname=storm
-pkgver=1.1.0.r0.g0000000
+pkgver=1.2.0.r0.g0000000
 pkgrel=1
 pkgdesc="Command line tool to manage your ssh connections in ~/.ssh/config"
 arch=('any')
