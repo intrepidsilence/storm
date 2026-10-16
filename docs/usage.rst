@@ -133,7 +133,7 @@ connection uri format
 
 defaults for *user* -> ``$USER``, *port* -> 22 if they are not specified.
 
-see `ssh_uri_parser <https://github.com/emre/storm/blob/master/storm/ssh_uri_parser.py>`_ for further look.
+see `ssh_uri_parser <https://github.com/intrepidsilence/storm/blob/master/storm/parsers/ssh_uri_parser.py>`_ for further look.
 
 
 web ui

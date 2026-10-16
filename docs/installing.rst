@@ -1,24 +1,22 @@
 installation
 =================================
 
+storm needs Python 3.11 or newer.
+
 installing via pip:
 
 .. code-block:: bash
 
-    $ [sudo] pip install stormssh
+    $ pip install git+https://github.com/intrepidsilence/storm.git
 
-or if you like 90s:
-
-.. code-block:: bash
-
-    $ [sudo] easy_install stormssh
-
-or download and add storm directory to the your `$PATH`. E.g.
+or from source:
 
 .. code-block:: bash
 
-    $ git clone git://github.com/emre/storm.git
-    $ export PATH=$PATH:`pwd`/storm/storm/bin/; storm
+    $ git clone https://github.com/intrepidsilence/storm.git
+    $ cd storm
+    $ pip install .
 
-and install `dependencies <https://github.com/emre/storm/blob/master/requirements.txt>`_.
+.. note::
+   ``pip install stormssh`` installs the original 0.7.0 release, not this fork.
 

@@ -4,7 +4,7 @@ stormssh
 
 storm is a command line tool to manage your ssh connections.
 
-`project page <https://github.com/emre/storm/>`_
+`project page <https://github.com/intrepidsilence/storm/>`_
 
 
 **features**
@@ -13,10 +13,10 @@ storm is a command line tool to manage your ssh connections.
 - command alias support for your CLI preferences.
 - support for custom SSH directives.
 - scriptable as a python library.
-- user interfaces besides cli. (wxpython, unity(ubuntu) indicator.)
+- a local web ui besides the cli.
 
 
-.. figure::  https://raw.github.com/emre/storm/master/resources/screenshot.png
+.. figure::  https://raw.githubusercontent.com/intrepidsilence/storm/master/resources/screenshot.png
    :width: 600
 
 
@@ -29,7 +29,6 @@ Contents:
 
    installing
    usage
-   appsandtools
 
 
 

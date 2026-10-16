@@ -39,9 +39,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/emre/storm"
-Documentation = "https://stormssh.readthedocs.org"
-Repository = "https://github.com/emre/storm"
+Homepage = "https://github.com/intrepidsilence/storm"
+Documentation = "https://github.com/intrepidsilence/storm/tree/master/docs"
+Repository = "https://github.com/intrepidsilence/storm"
 
 [project.scripts]
 storm = "storm.__main__:main"

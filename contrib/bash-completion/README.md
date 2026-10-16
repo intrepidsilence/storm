@@ -8,14 +8,10 @@ You can download bash script and add it to your environment. All you need
 is to source it!
 
     cd /path/to/your/env/
-    curl -O https://raw.githubusercontent.com/emre/storm/master/contrib/bash-completion/stormssh
+    curl -O https://raw.githubusercontent.com/intrepidsilence/storm/master/contrib/bash-completion/stormssh
     
     # add it to you .bashrc or so,
     source /path/to/your/env/storm
-
-or, if you are an OSX user, you can download it from `brew`:
-
-    brew install homebrew/completions/stormssh-completion
 
 ## Usage
 

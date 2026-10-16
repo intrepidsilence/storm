@@ -66,7 +66,7 @@ class prog:
         kwargs.update({
             'formatter_class': argparse.RawTextHelpFormatter,
             'epilog': "storm is a command line tool to manage ssh connections.\n"
-                      "get more information at: github.com/emre/storm",
+                      "get more information at: github.com/intrepidsilence/storm",
         })
 
         self.parser = argparse.ArgumentParser(**kwargs)

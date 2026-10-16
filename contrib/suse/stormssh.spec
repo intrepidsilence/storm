@@ -20,7 +20,7 @@ Version:        0.6.4
 Release:        0
 License:        MIT
 Summary:        Management commands to ssh config files
-Url:            http://github.com/emre/storm
+Url:            https://github.com/intrepidsilence/storm
 Group:          Development/Languages/Python
 Source:         https://pypi.python.org/packages/source/s/stormssh/stormssh-%{version}.tar.gz
 BuildRequires:  python-devel
